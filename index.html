@@ -2,8 +2,82 @@
 <html>
   <head>
     <title>killiankane.com</title>
+    <style>
+      body {
+        margin: 0;
+        overflow: hidden;
+      }
+      canvas {
+        display: block;
+      }
+    </style>
   </head>
   <body>
-    <p><strong>Hi!</strong></p>
+    <canvas id="my_canvas"></canvas>
+
+    <script>
+      var canvas = document.getElementById("my_canvas");
+      var c = canvas.getContext("2d");
+
+      var container = {
+        x: 0,
+        y: 0,
+        width: window.innerWidth,
+        height: window.innerHeight
+      };
+
+      // One big circle
+      var circle = {
+        x: 200,
+        y: 200,
+        r: 100,
+        vx: 5,
+        vy: 4,
+        color: 180
+      };
+
+      function resizeCanvas() {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+        container.width = canvas.width;
+        container.height = canvas.height;
+
+        // Ensure circle is within bounds after resize
+        circle.x = Math.min(Math.max(circle.r, circle.x), container.width - circle.r);
+        circle.y = Math.min(Math.max(circle.r, circle.y), container.height - circle.r);
+      }
+
+      window.addEventListener('resize', resizeCanvas);
+      resizeCanvas();
+
+      function animate() {
+        c.fillStyle = "#000000";
+        c.fillRect(container.x, container.y, container.width, container.height);
+
+        // Draw the circle
+        c.fillStyle = 'hsl(' + circle.color++ + ', 100%, 50%)';
+        c.beginPath();
+        c.arc(circle.x, circle.y, circle.r, 0, Math.PI * 2, true);
+        c.fill();
+
+        // Bounce logic
+        if (circle.x - circle.r + circle.vx < container.x || 
+            circle.x + circle.r + circle.vx > container.width) {
+          circle.vx = -circle.vx;
+        }
+
+        if (circle.y - circle.r + circle.vy < container.y || 
+            circle.y + circle.r + circle.vy > container.height) {
+          circle.vy = -circle.vy;
+        }
+
+        circle.x += circle.vx;
+        circle.y += circle.vy;
+
+        requestAnimationFrame(animate);
+      }
+
+      requestAnimationFrame(animate);
+    </script>
   </body>
 </html>
