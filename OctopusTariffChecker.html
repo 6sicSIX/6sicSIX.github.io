@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Octopus Fixed Tariff</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<style>
+  :root {
+    --bg:#000000;               /* black background */
+    --text:#ffffff;             /* white text */
+    --card-bg:#111111;          /* dark grey card */
+    --border:#333333;           /* subtle dark border */
+    --muted:#bbbbbb;            /* softer white/grey labels */
+    --bg-cheaper:#330000;       /* dark red background when cheaper */
+    --border-cheaper:#ff4444;   /* brighter red border when cheaper */
+  }
+
+  body {
+    font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+    max-width: 620px;
+    margin: 40px auto;
+    padding: 20px;
+    background: var(--bg);
+    color: var(--text);
+    transition: background-color 0.2s ease;
+  }
+
+  .card {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 1px 3px rgba(255,255,255,0.05);
+    cursor: pointer;
+    transition: border-color 0.2s ease, transform 0.05s ease;
+  }
+
+  .card:active { transform: scale(0.997); }
+
+  h1 {
+    font-size: 1.35rem;
+    margin: 0 0 1rem;
+    color: var(--text);
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    column-gap: 8px;
+    row-gap: 6px;
+  }
+
+  .label { color: var(--muted); }
+  .value { font-weight: 600; color: var(--text); }
+
+  .loading, .error {
+    margin-top: 14px;
+    font-size: 0.9rem;
+  }
+
+  .loading { color: #999999; }
+  .error { color: #ff6666; }
+
+  .compare-text {
+    margin-top: 16px;
+    font-size: 0.85rem;
+    color: #dddddd;
+  }
+
+  .cheaper-text {
+    margin-top: 4px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #ff4444; /* bright red text */
+  }
+</style>
+</head>
+
+<body>
+<div class="card" id="card">
+  <h1 id="fullName">Octopus Fixed Tariff</h1>
+
+  <div class="grid">
+    <div class="label">Standing charge</div>
+    <div class="value" id="standing">—</div>
+
+    <div class="label">Unit rate</div>
+    <div class="value" id="unit">—</div>
+
+    <div class="label">Exit fee</div>
+    <div class="value" id="exitFee">—</div>
+
+    <div class="label">Introduced</div>
+    <div class="value" id="introduced">—</div>
+
+    <div class="label">Product code</div>
+    <div class="value" id="productCode">—</div>
+  </div>
+
+  <div class="loading" id="loading">Loading latest 12-month fixed tariff…</div>
+  <div class="error" id="error" style="display:none;"></div>
+
+  <div class="compare-text" id="compareText" style="display:none;"></div>
+  <div class="cheaper-text" id="cheaperText" style="display:none;"></div>
+</div>
+
+<script>
+(function () {
+  const REGION = "A";
+  const PAYMENT = "direct_debit_monthly";
+  const STORAGE_KEY = "currentProductCode";
+  const PRODUCTS_URL =
+    "https://api.octopus.energy/v1/products?brand=OCTOPUS_ENERGY&direction=IMPORT&page_size=200";
+
+  const $ = id => document.getElementById(id);
+  const set = (id, txt) => { const el = $(id); if (el) el.textContent = txt; };
+
+  const fmtPence = v => (v == null ? "—" : v.toFixed(2) + "p");
+  const fmtPounds = v => (v == null ? "—" : "£" + v.toFixed(2));
+
+  function formatDate(iso) {
+    const d = new Date(iso);
+    return Number.isNaN(d.getTime()) ? "—" :
+      d.toLocaleDateString("en-GB", { day:"numeric", month:"long", year:"numeric" });
+  }
+
+  function getStoredCode() {
+    try { return localStorage.getItem(STORAGE_KEY); } catch { return null; }
+  }
+
+  function setStoredCode(code) {
+    try { localStorage.setItem(STORAGE_KEY, code); } catch {}
+  }
+
+  let latestUnitRate = null;
+  let latestLoaded = false;
+  let latestName = null;
+
+  async function loadLatestTariff() {
+    try {
+      const list = await (await fetch(PRODUCTS_URL)).json();
+      const products = list.results || [];
+
+      const fixed = products.filter(p =>
+        p.term === 12 &&
+        !p.is_variable &&
+        !p.is_tracker &&
+        !p.is_business &&
+        !p.is_prepay &&
+        p.direction === "IMPORT"
+      );
+
+      fixed.sort((a,b)=> new Date(b.available_from||0) - new Date(a.available_from||0));
+
+      const product = fixed[0];
+      const details = await (await fetch(
+        "https://api.octopus.energy/v1/products/" + product.code + "/"
+      )).json();
+
+      const regionObj =
+        (details.single_register_electricity_tariffs ||
+         details.dual_register_electricity_tariffs || {})["_" + REGION];
+
+      const tariff = regionObj[PAYMENT];
+
+      latestUnitRate = tariff.standard_unit_rate_inc_vat;
+      latestLoaded = true;
+      latestName = product.full_name || product.display_name || product.code;
+
+      set("fullName", latestName);
+      set("standing", fmtPence(tariff.standing_charge_inc_vat) + " / day");
+      set("unit", fmtPence(latestUnitRate) + " / kWh");
+      set("exitFee", fmtPounds(tariff.exit_fees_inc_vat || 0));
+      set("introduced", formatDate(product.available_from));
+      set("productCode", product.code);
+
+    } catch (e) {
+      $("error").textContent = "Could not load tariff details: " + e.message;
+      $("error").style.display = "block";
+    } finally {
+      $("loading").style.display = "none";
+    }
+  }
+
+  async function compareWithCode(code) {
+    if (!code || !latestLoaded) return;
+
+    const compareText = $("compareText");
+    const cheaperText = $("cheaperText");
+
+    try {
+      const p = await (await fetch(
+        "https://api.octopus.energy/v1/products/" + code + "/"
+      )).json();
+
+      const regionObj =
+        (p.single_register_electricity_tariffs ||
+         p.dual_register_electricity_tariffs || {})["_" + REGION];
+
+      const t = regionObj[PAYMENT];
+      const userUnitRate = t.standard_unit_rate_inc_vat;
+
+      const monitoredName = p.full_name || p.display_name || code;
+
+      compareText.textContent =
+        "Comparing with " + monitoredName + " (" + fmtPence(userUnitRate) + " / kWh)";
+      compareText.style.display = "block";
+
+      const cheaper = latestUnitRate < userUnitRate;
+      if (cheaper) {
+        document.body.style.backgroundColor = "var(--bg-cheaper)";
+        $("card").style.borderColor = "var(--border-cheaper)";
+        cheaperText.textContent =
+          latestName + " is cheaper than " + monitoredName;
+        cheaperText.style.display = "block";
+      } else {
+        document.body.style.backgroundColor = "var(--bg)";
+        $("card").style.borderColor = "var(--border)";
+        cheaperText.style.display = "none";
+      }
+
+    } catch (err) {
+      alert("Comparison failed: " + err.message);
+    }
+  }
+
+  (async function init() {
+    await loadLatestTariff();
+    const saved = getStoredCode();
+    if (saved) compareWithCode(saved);
+  })();
+
+  $("card").addEventListener("click", () => {
+    const previous = getStoredCode() || "";
+    const input = prompt("Enter your current product code", previous);
+    if (!input) return;
+    const code = input.trim();
+    if (!code) return;
+    setStoredCode(code);
+    compareWithCode(code);
+  });
+
+})();
+</script>
+</body>
+</html>
