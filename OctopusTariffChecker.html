@@ -1,113 +1,128 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <title>Octopus Fixed Tariff</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <!-- PWA bits -->
-  <meta name="theme-color" content="#000000" />
-  <link rel="manifest" href="/manifest.webmanifest" />
-  <link rel="icon" href="/icons/icon-192.png" />
-  <!-- Optional iOS-ish behaviour -->
-  <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <meta name="apple-mobile-web-app-title" content="Octopus Tariff" />
-  <link rel="apple-touch-icon" href="/icons/icon-192.png" />
+<meta charset="UTF-8" />
+<title>Octopus Fixed Tariff</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
 
-  <style>
-    :root {
-      --border:#333333;
-      --muted:#bbbbbb;
-      --bg:#000000;
-      --card-bg:#111111;
-      --text:#ffffff;
-      --bg-cheaper:#330000;
-      --border-cheaper:#ff4444;
-    }
-    body {
-      font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
-      max-width: 620px;
-      margin: 40px auto;
-      padding: 20px;
-      background: var(--bg);
-      color: var(--text);
-      transition: background-color 0.2s ease;
-    }
-    .card {
-      background: var(--card-bg);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 20px;
-      box-shadow: 0 1px 3px rgba(255,255,255,0.05);
-      cursor: pointer;
-      transition: border-color 0.2s ease, transform 0.05s ease;
-    }
-    .card:active { transform: scale(0.997); }
-    h1 {
-      font-size: 1.35rem;
-      margin: 0 0 1rem;
-      color: var(--text);
-    }
-    .grid {
-      display: grid;
-      grid-template-columns: auto 1fr;
-      column-gap: 8px;
-      row-gap: 6px;
-    }
-    .label { color: var(--muted); }
-    .value { font-weight: 600; color: var(--text); }
-    .loading, .error {
-      margin-top: 14px;
-      font-size: 0.9rem;
-    }
-    .loading { color: #999999; }
-    .error { color: #ff6666; }
-    .compare-text {
-      margin-top: 16px;
-      font-size: 0.85rem;
-      color: #dddddd;
-    }
-    .cheaper-text {
-      margin-top: 4px;
-      font-size: 0.9rem;
-      font-weight: 600;
-      color: #ff4444;
-    }
-  </style>
+<!-- PWA -->
+<meta name="theme-color" content="#000000" />
+<link rel="manifest" href="/manifest.webmanifest" />
+<link rel="icon" href="/icons/icon-192.png" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="Octopus Tariff" />
+<link rel="apple-touch-icon" href="/icons/icon-192.png" />
+
+<style>
+  :root {
+    --border:#333333;
+    --muted:#bbbbbb;
+    --bg:#000000;         /* black background */
+    --card-bg:#111111;    /* card dark grey */
+    --text:#ffffff;       /* white text */
+    --bg-cheaper:#330000; /* dark red when cheaper */
+    --border-cheaper:#ff4444;
+  }
+
+  body {
+    font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+    max-width: 620px;
+    margin: 40px auto;
+    padding: 20px;
+    background: var(--bg);
+    color: var(--text);
+    transition: background-color 0.2s ease;
+  }
+
+  .card {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 1px 3px rgba(255,255,255,0.05);
+    cursor: pointer;
+    transition: border-color 0.2s ease, transform 0.05s ease;
+  }
+
+  .card:active { transform: scale(0.997); }
+
+  h1 {
+    font-size: 1.35rem;
+    margin: 0 0 1rem;
+    color: var(--text);
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    column-gap: 8px;
+    row-gap: 6px;
+  }
+
+  .label { color: var(--muted); }
+  .value { font-weight: 600; color: var(--text); }
+
+  .loading, .error {
+    margin-top: 14px;
+    font-size: 0.9rem;
+  }
+
+  .loading { color: #999999; }
+  .error { color: #ff6666; }
+
+  .compare-text {
+    margin-top: 16px;
+    font-size: 0.85rem;
+    color: #dddddd;
+  }
+
+  .cheaper-text {
+    margin-top: 4px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #ff4444;
+  }
+</style>
 </head>
 
 <body>
-  <div class="card" id="card">
-    <h1 id="fullName">Octopus Fixed Tariff</h1>
+<div class="card" id="card">
+  <h1 id="fullName">Octopus Fixed Tariff</h1>
 
-    <div class="grid">
-      <div class="label">Standing charge</div>
-      <div class="value" id="standing">—</div>
+  <div class="grid">
 
-      <div class="label">Unit rate</div>
-      <div class="value" id="unit">—</div>
+    <!-- UNIT RATE FIRST -->
+    <div class="label">Unit rate</div>
+    <div class="value" id="unit">—</div>
 
-      <div class="label">Exit fee</div>
-      <div class="value" id="exitFee">—</div>
+    <div class="label">Standing charge</div>
+    <div class="value" id="standing">—</div>
 
-      <div class="label">Introduced</div>
-      <div class="value" id="introduced">—</div>
+    <div class="label">Exit fee</div>
+    <div class="value" id="exitFee">—</div>
 
-      <div class="label">Product code</div>
-      <div class="value" id="productCode">—</div>
-    </div>
+    <div class="label">Introduced</div>
+    <div class="value" id="introduced">—</div>
 
-    <div class="loading" id="loading">Loading latest 12-month fixed tariff…</div>
-    <div class="error" id="error" style="display:none;"></div>
-    <div class="compare-text" id="compareText" style="display:none;"></div>
-    <div class="cheaper-text" id="cheaperText" style="display:none;"></div>
+    <div class="label">Product code</div>
+    <div class="value" id="productCode">—</div>
+
   </div>
+
+  <div class="loading" id="loading">Loading latest 12-month fixed tariff…</div>
+  <div class="error" id="error" style="display:none;"></div>
+
+  <div class="compare-text" id="compareText" style="display:none;"></div>
+  <div class="cheaper-text" id="cheaperText" style="display:none;"></div>
+</div>
 
 <script>
 (function () {
   const REGION = "A";
   const PAYMENT = "direct_debit_monthly";
   const STORAGE_KEY = "currentProductCode";
+
   const PRODUCTS_URL =
     "https://api.octopus.energy/v1/products?brand=OCTOPUS_ENERGY&direction=IMPORT&page_size=200";
 
@@ -150,8 +165,8 @@
       );
 
       fixed.sort((a,b)=> new Date(b.available_from||0) - new Date(a.available_from||0));
-      const product = fixed[0];
 
+      const product = fixed[0];
       const details = await (await fetch(
         "https://api.octopus.energy/v1/products/" + product.code + "/"
       )).json();
@@ -174,7 +189,7 @@
       set("productCode", product.code);
 
     } catch (e) {
-      set("error", "Could not load tariff details: " + e.message);
+      $("error").textContent = "Could not load tariff details: " + e.message;
       $("error").style.display = "block";
     } finally {
       $("loading").style.display = "none";
@@ -206,20 +221,17 @@
       compareText.style.display = "block";
 
       const cheaper = latestUnitRate < userUnitRate;
-      const body = document.body;
-      const card = $("card");
 
       if (cheaper) {
-        body.style.backgroundColor = "var(--bg-cheaper)";
-        card.style.borderColor = "var(--border-cheaper)";
+        document.body.style.backgroundColor = "var(--bg-cheaper)";
+        $("card").style.borderColor = "var(--border-cheaper)";
         cheaperText.textContent =
           latestName + " is cheaper than " + monitoredName;
         cheaperText.style.display = "block";
       } else {
-        body.style.backgroundColor = "var(--bg)";
-        card.style.borderColor = "var(--border)";
+        document.body.style.backgroundColor = "var(--bg)";
+        $("card").style.borderColor = "var(--border)";
         cheaperText.style.display = "none";
-        cheaperText.textContent = "";
       }
 
     } catch (err) {
@@ -256,5 +268,6 @@
     });
   }
 </script>
+
 </body>
 </html>
